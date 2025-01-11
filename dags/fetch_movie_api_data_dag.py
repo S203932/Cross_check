@@ -96,7 +96,7 @@ def openHockeyPlayerCsv(output_folder: str):
                         # Getting the list of credits for the specific person if their is a birthday match
                         print(id)
 
-                        urlCredits = 'https://api.themoviedb.org/3/person/'+id+'/movie_credits'
+                        urlCredits = 'https://api.themoviedb.org/3/person/'+id+'/combined_credits'
                         response = requests.get(urlCredits,headers=headers)
                         json_object_final = json.loads(response.text)
 
