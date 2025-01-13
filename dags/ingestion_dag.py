@@ -1,13 +1,42 @@
-import string
 import requests
 import pandas as pd
 from bs4 import BeautifulSoup
 from airflow import DAG
-from airflow.operators.python import PythonOperator
-from airflow.api.common.experimental.trigger_dag import trigger_dag
 from datetime import datetime
+from airflow.operators.python import PythonOperator, BranchPythonOperator
+from airflow.api.common.experimental.trigger_dag import trigger_dag
+from airflow.operators.dummy import DummyOperator
 
-def scrape_hockey_data():
+default_args = {
+    'owner': 'airflow',
+    'start_date': airflow.utils.dates.days_ago(0),
+    'schedule_interval': None,
+    'retries': 1,
+}
+
+dag = DAG(
+    'data_ingestion_dag',
+    default_args=default_args,
+    description='A DAG to scrape hockey data and trigger processing',
+    schedule_interval=None,
+)
+
+def check_connection():
+    try:
+        requests.get("https://www.hockeydb.com", timeout=10)
+    except requests.exceptions.ConnectionError:
+        return "offline_source"
+    return "online_source"
+        
+
+connection_check_node = BranchPythonOperator(
+    task_id='connection_check',
+    dag=dag,
+    python_callable=check_connection,
+    trigger_rule='all_success',
+)
+
+def scrape_data_online(output_folder: str):
     base_url = "https://www.hockeydb.com/ihdb/players/player_ind_{}.html"
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:106.0) Gecko/20100101 Firefox/106.0',
@@ -16,9 +45,8 @@ def scrape_hockey_data():
 
     # Loop through all letters of the alphabet
     # for letter in string.ascii_lowercase:
-    for letter in ['a', 'b']:
+    for letter in ['b', 'c']:
         url = base_url.format(letter)
-        print(f"Processing {url}...")
         
         try:
             # Make request to the website
@@ -39,34 +67,34 @@ def scrape_hockey_data():
         combined_df = pd.concat(all_data, ignore_index=True)
         combined_df.drop_duplicates(inplace=True)
         
-        combined_df.to_csv("/opt/airflow/dags/hockey_players.csv", index=False)
+        combined_df.to_csv(f"{output_folder}raw_player_data.csv", index=False)
 
-def trigger_process_csv_dag():
-    trigger_dag(dag_id='process_hockey_data', run_id=f"manual__{datetime.now().isoformat()}")
-
-default_args = {
-    'owner': 'airflow',
-    'start_date': datetime(2025, 1, 8),
-    'retries': 1,
-}
-
-dag = DAG(
-    'scrape_hockey_data',
-    default_args=default_args,
-    description='A DAG to scrape hockey data and trigger processing',
-    schedule_interval=None,
-)
-
-scrape_task = PythonOperator(
-    task_id='scrape_hockey_data_task',
-    python_callable=scrape_hockey_data,
+scrape_task_online = PythonOperator(
+    task_id='online_source',
+    python_callable=scrape_data_online,
+    op_kwargs={"output_folder": "/opt/airflow/data/"},
     dag=dag,
 )
+
+def scrape_data_offline(output_folder: str):
+    df = pd.read_csv(f"{output_folder}offline_data.csv")
+    df.to_csv(f"{output_folder}raw_player_data.csv", index=False)
+
+scrape_task_offline = PythonOperator(
+    task_id='offline_source',
+    python_callable=scrape_data_offline,
+    op_kwargs={"output_folder": "/opt/airflow/data/"},
+    dag=dag,
+)
+
+def trigger_staging_dag():
+    trigger_dag(dag_id='data_wrangling_dag', run_id=f"manual__{datetime.now().isoformat()}")
 
 trigger_task = PythonOperator(
-    task_id='trigger_process_csv_task',
-    python_callable=trigger_process_csv_dag,
+    task_id='trigger_staging_task',
+    python_callable=trigger_staging_dag,
+    trigger_rule='one_success',
     dag=dag,
 )
 
-scrape_task >> trigger_task
+connection_check_node >> [scrape_task_online, scrape_task_offline] >> trigger_task
