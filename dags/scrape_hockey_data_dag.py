@@ -15,7 +15,8 @@ def scrape_hockey_data():
     all_data = []
 
     # Loop through all letters of the alphabet
-    for letter in string.ascii_lowercase:
+    # for letter in string.ascii_lowercase:
+    for letter in ['a', 'b']:
         url = base_url.format(letter)
         print(f"Processing {url}...")
         
