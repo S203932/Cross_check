@@ -1,6 +1,9 @@
 import airflow
 import datetime
 import sqlite3
+import csv
+import os
+import json 
 from airflow import DAG
 from airflow.operators.bash_operator import BashOperator
 from airflow.operators.python_operator import PythonOperator, BranchPythonOperator
@@ -108,16 +111,95 @@ def create_database(epoch: int,output_folder: str):
     conn.commit()
     conn.close()
 
+
+
+
+
 def populate_database(epoch: int, output_folder: str):
-    conn = sqlite3.connect('{output_folder}\\Hockey_entertainment.db')
+    conn = sqlite3.connect('{output_folder}\hockey_entertainment.db')
     c = conn.cursor()
-    #c.execute("SELECT * FROM PLAYERS")
-    #print(c.fetchall())
+
+
+    c.execute("""CREATE TABLE IF NOT EXISTS PLAYERS(
+        FIRST_NAME TEXT,
+        LAST_NAME TEXT, 
+        BIRTHDAY DATE, 
+        AMOUNT_MOVIES INTEGER, 
+        AMOUNT_TV INTEGER, 
+        PRIMARY KEY(FIRST_NAME, LAST_NAME, BIRTHDAY)
+        );""")
+
+
+    # Need to open csv file with all hockey players
+    with open(f'{output_folder}/hockey_players.csv', mode ='r')as file:
+        players = csv.reader(file)
+
+        # skip first line
+        counter = 0
+        for lines in players:
+            if(counter != 0):
+
+
+                # Getting the First name, last name and birthday in correct format 
+            
+                try:
+                    name = lines[0]
+                    name = name.split(' ')
+                    firstName = name[0]
+                    lastName = name[1]
+
+                    birthday = lines[1]
+                    birthday = birthday.split('/')
+
+                    # Birtday now in format YYYY-MM-DD
+                    convertedBirthday = str(birthday[2].replace('\n','')+'-'+birthday[0]+'-'+birthday[1])
+
+
+                    # Now first name, last name and birthday is in place, so to search the local
+                    # files for a match
+
+                    
+                except:
+                    print("Error in formatting")
+                movies_amount = 0
+                tv_amount = 0
+                undefined = 0
+                for root, dirs, files in os.walk('{output_folder}\\movie_data'):
+                    for file in files:
+                        # file is a string of the filename
+                        if(file == f'{firstName}_{lastName}_{convertedBirthday}.json'):
+                            print("Found Player")
+                            # Open and read the JSON file
+                            with open(f'{output_folder}\\movie_data\\{file}', 'r') as file:
+                                json_object = json.load(file)
+                                #formatted = json.dumps(json_object['cast'], indent=3)
+                                json_apperances = json_object['cast']
+                                for media in json_apperances:
+                                    if(media['media_type'] == 'movie'):
+                                        movies_amount += 1
+                                    elif(media['media_type'] == 'tv'):
+                                        tv_amount += 1
+                                    else: 
+                                        undefined += 1
+                                
+            
+                
+                entry = f'''INSERT INTO PLAYERS (
+                FIRST_NAME ,LAST_NAME , BIRTHDAY , AMOUNT_MOVIES , AMOUNT_TV) VALUES 
+                ("{firstName}","{lastName}","{convertedBirthday}","{movies_amount}","{tv_amount}")'''
+
+                c.execute(entry)
+            counter += 1
+
+    #sql_query = """SELECT * FROM PLAYERS;"""
+    conn.commit()
+    #c.execute(sql_query)
+
+    #print(len(c.fetchall()))
+
+
+
     conn.close()
-
-
-    ### Need to do
-    # Open files from this method and populate the database
     
     
 
