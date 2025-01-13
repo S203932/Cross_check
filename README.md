@@ -6,8 +6,8 @@ This would create a database capable of answering questions such as "which playe
 
 # Ingestion
 The data used in this project comes from two sources: 
- https://www.hockeydb.com
- https://developer.themoviedb.org/reference/person-movie-credits
+1. https://www.hockeydb.com
+2. https://developer.themoviedb.org/reference/person-movie-credits
 
 The first DAG scrape_hockey_data is used to scrape data about all players who has played a minimum of one game in the NHL from https://www.hockeydb.com. The tables are split by the first letter of the last name so the scraper need to loop through all the letters. The resulting table is saved to a csv file.
 
