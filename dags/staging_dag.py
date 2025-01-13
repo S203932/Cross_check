@@ -69,6 +69,20 @@ delete_task = BashOperator(
     dag=dag,
 )
 
+def check_connection():
+    try:
+        requests.get("https://www.hockeydb.com", timeout=10)
+    except requests.exceptions.ConnectionError:
+        return "offline_source"
+    return "online_source"
+
+connection_check = BranchPythonOperator(
+    task_id='connection_check',
+    python_callable=check_connection,
+    dag=dag,
+    trigger_rule='all_success',
+)
+
 def call_api_online(output_folder: str):
     # Opening the players file
     with open(f'{output_folder}/cleaned_player_data.csv', 'r') as file: 
@@ -124,11 +138,30 @@ def call_api_online(output_folder: str):
                         print(fetch_birthday + " is not equal to "+birthday)
             except:
                 print("Issue with value of the current player, skipping")
-                
 
-enriching_task = PythonOperator(
-    task_id='enrich_data_task',
+enriching_task_online = PythonOperator(
+    task_id='online_source',
     python_callable=call_api_online,
+    dag=dag,
+    op_kwargs={"output_folder": "/opt/airflow/data",},
+    trigger_rule='all_success',
+)
+
+def call_api_offline(output_folder: str):
+    # Opening the players file
+    with open(f'{output_folder}/cleaned_player_data.csv', 'r') as file: 
+        
+        #Reading player information line by line
+        for line in file:
+            currentLine = line.split(',')
+            firstName = currentLine[0]
+            lastName = currentLine[1]
+            
+        #TODO: Implement the offline API call here
+
+enriching_task_offline = PythonOperator(
+    task_id='offline_source',
+    python_callable=call_api_offline,
     dag=dag,
     op_kwargs={"output_folder": "/opt/airflow/data",},
     trigger_rule='all_success',
@@ -140,4 +173,4 @@ end = DummyOperator(
     trigger_rule='none_failed'
 )
 
-process_task >> delete_task >> enriching_task >> end
+process_task >> delete_task >> connection_check >> [enriching_task_online, enriching_task_offline] >> end
