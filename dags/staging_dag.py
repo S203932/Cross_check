@@ -1,10 +1,10 @@
 import re
 import pandas as pd
-from airflow import DAG
 import datetime as dt
 import requests
 import json
-from airflow.operators.python_operator import PythonOperator
+from airflow import DAG
+from airflow.operators.python_operator import PythonOperator, BranchPythonOperator
 from airflow.operators.dummy_operator import DummyOperator
 from airflow.operators.bash import BashOperator
 
@@ -19,7 +19,6 @@ dag = DAG(
     dag_id='data_wrangling_dag',
     default_args=default_args,
     description='A DAG to clean and enrich data',
-    template_searchpath=["/opt/airflow/data/"], 
 )
 
 # Split the name into first and last names
@@ -36,24 +35,16 @@ def clean_names(name):
 def process_csv(output_folder: str):
     df = pd.read_csv(f'{output_folder}/raw_player_data.csv')
 
-    # Select relevant columns and clean names
     df_filtered = df.iloc[:, [0, 2]].copy()
     df_filtered = df_filtered.dropna(subset=[df_filtered.columns[1]])
-
-    # Clean the names
     df_filtered.iloc[:, 0] = df_filtered.iloc[:, 0].apply(clean_names)
 
-    # Split the name column into two columns: First Name and Last Name
     df_split = df_filtered.iloc[:, 0].apply(lambda x: pd.Series(split_names(x)))
     df_split.columns = ['First Name', 'Last Name']
 
-    # Convert the date column to the desired format
     df_filtered['Formatted Date'] = pd.to_datetime(df_filtered.iloc[:, 1], format='%m/%d/%Y').dt.strftime('%Y-%m-%d')
 
-    # Combine results into the final DataFrame
     df_result = pd.concat([df_split, df_filtered['Formatted Date']], axis=1)
-
-    # Save the cleaned data
     df_result.to_csv(f'{output_folder}/cleaned_player_data.csv', index=False)
     
 process_task = PythonOperator(
@@ -71,7 +62,12 @@ delete_task = BashOperator(
 
 def check_connection():
     try:
-        requests.get("https://www.hockeydb.com", timeout=10)
+        url = "https://api.themoviedb.org/3/authentication"
+        headers = {
+                    "accept": "application/json",
+                    "Authorization": "Bearer eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJmNmVmNWZhMzllM2I3MDFlNGZhYmQyOThjNTE5ZjJhZCIsIm5iZiI6MTczMjcyNTM2MS44NjIwMDAyLCJzdWIiOiI2NzQ3NGE3MTBmZDdmODIzZTBjOWFhYmIiLCJzY29wZXMiOlsiYXBpX3JlYWQiXSwidmVyc2lvbiI6MX0.GqcOH4BR7uWn9JdcurVQV5ZNnWrJW7tJ6EubPIYBHD8"
+                }
+        requests.get(url, headers)
     except requests.exceptions.ConnectionError:
         return "offline_source"
     return "online_source"
@@ -92,7 +88,7 @@ def call_api_online(output_folder: str):
             currentLine = line.split(',')
             firstName = currentLine[0]
             lastName = currentLine[1]
-            birthday = currentLine[2]
+            birthday = currentLine[2].strip('\n')
             
             try:
                 urlName = "https://api.themoviedb.org/3/search/person?query="+firstName+"%20"+lastName+"&include_adult=false&language=en-US&page=1"
@@ -105,9 +101,7 @@ def call_api_online(output_folder: str):
                 response = requests.get(urlName, headers=headers)
                 json_object_all = json.loads(response.text)
 
-                #formatted = json.dumps(json_object_all['results'][0]['id'], indent=3)
-
-                ## Get ID of people who match the name
+                # Get ID of people who match the name
                 for i in range(0,len(json_object_all['results'])):
                     id : str = str(json_object_all['results'][i]['id'])
 
@@ -135,7 +129,7 @@ def call_api_online(output_folder: str):
 
                         break
                     else:
-                        print(fetch_birthday + " is not equal to "+birthday)
+                        print(fetch_birthday+" is not equal to "+birthday)
             except:
                 print("Issue with value of the current player, skipping")
 
@@ -147,24 +141,10 @@ enriching_task_online = PythonOperator(
     trigger_rule='all_success',
 )
 
-def call_api_offline(output_folder: str):
-    # Opening the players file
-    with open(f'{output_folder}/cleaned_player_data.csv', 'r') as file: 
-        
-        #Reading player information line by line
-        for line in file:
-            currentLine = line.split(',')
-            firstName = currentLine[0]
-            lastName = currentLine[1]
-            
-        #TODO: Implement the offline API call here
-
-enriching_task_offline = PythonOperator(
+enriching_task_offline = BashOperator(
     task_id='offline_source',
-    python_callable=call_api_offline,
+    bash_command='cp /opt/airflow/data/offline_movie_data/* /opt/airflow/data/movie_data/',
     dag=dag,
-    op_kwargs={"output_folder": "/opt/airflow/data",},
-    trigger_rule='all_success',
 )
 
 end = DummyOperator(

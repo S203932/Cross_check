@@ -1,15 +1,16 @@
+import string
 import requests
 import pandas as pd
+import datetime as dt
 from bs4 import BeautifulSoup
 from airflow import DAG
 from datetime import datetime
 from airflow.operators.python import PythonOperator, BranchPythonOperator
 from airflow.api.common.experimental.trigger_dag import trigger_dag
-from airflow.operators.dummy import DummyOperator
 
 default_args = {
     'owner': 'airflow',
-    'start_date': airflow.utils.dates.days_ago(0),
+    'start_date': dt.datetime(2025, 1, 8),
     'schedule_interval': None,
     'retries': 1,
 }
@@ -18,7 +19,6 @@ dag = DAG(
     'data_ingestion_dag',
     default_args=default_args,
     description='A DAG to scrape hockey data and trigger processing',
-    schedule_interval=None,
 )
 
 def check_connection():
@@ -44,8 +44,7 @@ def scrape_data_online(output_folder: str):
     all_data = []
 
     # Loop through all letters of the alphabet
-    # for letter in string.ascii_lowercase:
-    for letter in ['b', 'c']:
+    for letter in string.ascii_lowercase:
         url = base_url.format(letter)
         
         try:
