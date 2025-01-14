@@ -27,7 +27,7 @@ load_dotenv()
 API_KEY = os.getenv('TMDB_API_KEY')
 HEADERS = {
     "accept": "application/json",
-    "Authorization": f"Bearer {API_KEY}"
+    "Authorization": f"Bearer eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJmNmVmNWZhMzllM2I3MDFlNGZhYmQyOThjNTE5ZjJhZCIsIm5iZiI6MTczMjcyNTM2MS44NjIwMDAyLCJzdWIiOiI2NzQ3NGE3MTBmZDdmODIzZTBjOWFhYmIiLCJzY29wZXMiOlsiYXBpX3JlYWQiXSwidmVyc2lvbiI6MX0.GqcOH4BR7uWn9JdcurVQV5ZNnWrJW7tJ6EubPIYBHD8"
 }
 
 def clean_data(output_folder: str):
@@ -89,7 +89,7 @@ delete_task = BashOperator(
 def check_connection():
     try:
         url = "https://api.themoviedb.org/3/authentication"
-        requests.get(url, HEADERS)
+        requests.get(url, headers=HEADERS)
     except requests.exceptions.ConnectionError:
         return "offline_source"
     return "online_source"
@@ -114,7 +114,8 @@ def call_api_online(output_folder: str):
             try:
                 urlName = "https://api.themoviedb.org/3/search/person?query="+firstName+"%20"+lastName+"&include_adult=false&language=en-US&page=1"
 
-                response = requests.get(urlName, HEADERS)
+                response = requests.get(urlName, headers=HEADERS)
+                print(response.text)
                 json_object_all = json.loads(response.text)
 
                 # Get ID of people who match the name
@@ -123,14 +124,14 @@ def call_api_online(output_folder: str):
 
                     # Checking if the birthday aligns with the player
                     urlId = 'https://api.themoviedb.org/3/person/'+id
-                    response = requests.get(urlId, HEADERS)
+                    response = requests.get(urlId, headers=HEADERS)
                     json_object_id = json.loads(response.text)
                     fetch_birthday: str = str(json_object_id['birthday'])
 
                     if(fetch_birthday == birthday):
                         # Getting the list of credits for the specific person if their is a birthday match
                         urlCredits = 'https://api.themoviedb.org/3/person/'+id+'/combined_credits'
-                        response = requests.get(urlCredits,HEADERS)
+                        response = requests.get(urlCredits,headers=HEADERS)
                         json_object_final = json.loads(response.text)
 
                         if len(json_object_final) != 0:
