@@ -1,10 +1,17 @@
 # Cross_check
 The idea behing this project was to combine a dataset of current and former NHL players with a movie dataset, which allowed us to look for their appearance in movies and TV shows. This created a database capable of answering the questions:
 1. How many players has appeared in television?
-
+```
+SELECT * FROM PLAYERS WHERE AMOUNT_TV > 0
+```
 2. Which year contained the most appearances of NHL players in movies?
-
+```
+SELECT EXTRACT(YEAR FROM RELEASE) AS year, COUNT(*) AS count FROM CREDITS GROUP BY EXTRACT(YEAR FROM RELEASE) ORDER BY count DESC
+```
 3. Which players has made atleast two appearances in both tv shows and movies?
+```
+SELECT * FROM PLAYERS WHERE AMOUNT_MOVIES > 1 AND AMOUNT_TV > 1
+```
 
 
 ## Ingestion
