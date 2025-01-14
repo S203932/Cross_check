@@ -14,7 +14,7 @@ default_args = {
     'owner': 'airflow',
     'start_date': dt.datetime(2025, 1, 8),
     'schedule_interval': None,
-    'retries': 1,
+    'retries': 0,
 }
 
 dag = DAG(
@@ -78,12 +78,14 @@ wrangle_data = PythonOperator(
     python_callable=wrangle_data,
     op_kwargs={"output_folder": "/opt/airflow/data"},
     dag=dag,
+    trigger_rule = 'one_done',
 )
 
 delete_task = BashOperator(
     task_id='delete_raw_data',
     bash_command='rm /opt/airflow/data/raw_player_data.csv',
     dag=dag,
+    trigger_rule = 'one_done',
 )
 
 def check_connection():
@@ -98,7 +100,7 @@ connection_check = BranchPythonOperator(
     task_id='connection_check',
     python_callable=check_connection,
     dag=dag,
-    trigger_rule='all_success',
+    trigger_rule='one_done',
 )
 
 def call_api_online(output_folder: str):
