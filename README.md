@@ -39,7 +39,7 @@ All the tables are created and stored in an sql database using the star schema. 
 
 ## Setting up
 1. Clone the repository.
-2. Add the folder 'movie_data' to the 'data' folder
+2. Add the folder `movie_data` to the `data` folder.
 3. Create a `.env` in `/Cross_check/dags` and add your API key to it:
 ```
 TMDB_API_KEY=your_api_key_here
