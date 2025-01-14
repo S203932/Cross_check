@@ -89,12 +89,10 @@ delete_task = BashOperator(
 )
 
 def check_connection():
-    try:
-        url = "https://api.themoviedb.org/3/authentication"
-        requests.get(url, headers=HEADERS)
-    except requests.exceptions.ConnectionError:
-        return "offline_source"
-    return "online_source"
+    url = "https://api.themoviedb.org/3/authentication"
+    if requests.get(url, headers=HEADERS).status_code == 200:
+        return "online_source"
+    return "offline_source"
 
 connection_check = BranchPythonOperator(
     task_id='connection_check',
