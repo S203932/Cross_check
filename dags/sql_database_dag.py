@@ -26,8 +26,6 @@ sql = DAG(
     catchup=False,
 )
 
-
-
 def populate_database_players(epoch: int, output_folder: str):
     hook = PostgresHook(postgres_conn_id="postgres_default")
     conn = hook.get_conn()  # this returns psycopg2.connect() object
@@ -35,7 +33,7 @@ def populate_database_players(epoch: int, output_folder: str):
 
 
     # Need to open csv file with all hockey players
-    with open(f'{output_folder}/hockey_players.csv', mode ='r')as file:
+    with open(f'{output_folder}/player_data.csv', mode ='r')as file:
         players = csv.reader(file)
 
         # skip first line
@@ -177,7 +175,7 @@ task_populate_database_players = PythonOperator(
     dag=sql,
     python_callable=populate_database_players,
     op_kwargs={
-        "output_folder": "/opt/airflow/dags",
+        "output_folder": "/opt/airflow/data",
         "epoch": "{{ execution_date.int_timestamp }}",
     },
     trigger_rule='none_failed_min_one_success',
@@ -189,7 +187,7 @@ task_populate_database_others = PythonOperator(
     dag=sql,
     python_callable=populate_database_others,
     op_kwargs={
-        "output_folder": "/opt/airflow/dags",
+        "output_folder": "/opt/airflow/data",
         "epoch": "{{ execution_date.int_timestamp }}",
     },
     trigger_rule='none_failed_min_one_success',
@@ -389,7 +387,7 @@ task_one = BranchPythonOperator(
     dag=sql,
     python_callable=check_if_database,
     op_kwargs={
-        "output_folder": "/opt/airflow/dags",
+        "output_folder": "/opt/airflow/data",
         "epoch": "{{ execution_date.int_timestamp }}",
     },
     trigger_rule='all_success',
@@ -402,7 +400,7 @@ task_one = PythonOperator(
     dag=sql,
     python_callable=create_database,
     op_kwargs={
-        "output_folder": "/opt/airflow/dags",
+        "output_folder": "/opt/airflow/data",
         "epoch": "{{ execution_date.int_timestamp }}",
     },
     trigger_rule='none_failed_min_one_success',
@@ -445,7 +443,7 @@ task_populate_database_combine = PythonOperator(
     dag=sql,
     python_callable=populate_database_combine,
     op_kwargs={
-        "output_folder": "/opt/airflow/dags",
+        "output_folder": "/opt/airflow/data",
         "epoch": "{{ execution_date.int_timestamp }}",
     },
     trigger_rule='none_failed_min_one_success',
