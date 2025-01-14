@@ -1,5 +1,11 @@
 # Cross_check
-The idea behing this project is to combine a dataset of current and former NHL players with a movie dataset, which would allow us to look for their appearance in movies and TV shows. This would create a database capable of answering questions such as "which players appear in television?", "what years contained the most appearances of NHL players in movies?" and "which players have appeared tv shows and movies?".
+The idea behing this project was to combine a dataset of current and former NHL players with a movie dataset, which allowed us to look for their appearance in movies and TV shows. This created a database capable of answering the questions:
+1. How many players has appeared in television?
+
+2. Which year contained the most appearances of NHL players in movies?
+
+3. Which players have appeared in both tv shows and movies?
+
 
 ## Ingestion
 The data used in this project comes from two sources:
