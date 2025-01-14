@@ -46,16 +46,13 @@ def populate_database_players(epoch: int, output_folder: str):
                 # Getting the First name, last name and birthday in correct format 
             
                 try:
-                    name = lines[0]
-                    name = name.split(' ')
-                    firstName = name[0]
-                    lastName = name[1]
+                    firstName = lines[0]
+                    lastName = lines[1]
 
-                    birthday = lines[1]
-                    birthday = birthday.split('/')
+                    birthday = lines[2]
 
                     # Birtday now in format YYYY-MM-DD
-                    convertedBirthday = str(birthday[2].replace('\n','')+'-'+birthday[0]+'-'+birthday[1])
+                    #convertedBirthday = str(birthday[2].replace('\n','')+'-'+birthday[0]+'-'+birthday[1])
 
 
                     # Now first name, last name and birthday is in place, so to search the local
@@ -71,7 +68,7 @@ def populate_database_players(epoch: int, output_folder: str):
                     for file in files:
                         #print(f'file:{file}')
                         # file is a string of the filename
-                        if(file == f'{firstName}_{lastName}_{convertedBirthday}.json'):
+                        if(file == f'{firstName}_{lastName}_{birthday}.json'):
                             movies_amount = 0
                             tv_amount = 0
                             undefined = 0
@@ -92,7 +89,7 @@ def populate_database_players(epoch: int, output_folder: str):
             
                 firstName = firstName.replace('\'',' ')
                 lastName = lastName.replace('\'',' ')
-                entry = f'INSERT INTO PLAYERS (FIRST_NAME ,LAST_NAME , BIRTHDAY , AMOUNT_MOVIES , AMOUNT_TV) VALUES (\'{firstName}\',\'{lastName}\',\'{convertedBirthday}\',\'{movies_amount}\',\'{tv_amount}\')'
+                entry = f'INSERT INTO PLAYERS (FIRST_NAME ,LAST_NAME , BIRTHDAY , AMOUNT_MOVIES , AMOUNT_TV) VALUES (\'{firstName}\',\'{lastName}\',\'{birthday}\',\'{movies_amount}\',\'{tv_amount}\')'
 
                 try:
                     hook.run(sql=entry)
