@@ -11,23 +11,8 @@ from airflow.operators.python_operator import PythonOperator, BranchPythonOperat
 from airflow.operators.dummy_operator import DummyOperator
 from airflow.operators.postgres_operator import PostgresOperator
 
-default_args_dict = {
-    'start_date': airflow.utils.dates.days_ago(0),
-    'concurrency': 1,
-    'schedule_interval': None,
-    'retries': 0,
-    #'retry_delay': datetime.timedelta(minutes=5),
-}
-
-first_dag = DAG(
-    dag_id='fetching_api_data',
-    default_args=default_args_dict,
-    catchup=False,
-)
-
 # Opening the csv to read the data
 def openHockeyPlayerCsv(output_folder: str):
-    
     
     print('Start!!!')
     # Opening the players file
@@ -38,35 +23,23 @@ def openHockeyPlayerCsv(output_folder: str):
             print("New line")
             currentLine = line.split(',')
 
-            # Getting the First name, last name and birthday in correct format 
-
-            # Currently in the format MM/DD/YYYY
-            birthday = currentLine[1]
-            
-            name = currentLine[0]
-            name = name.split(' ')
-            firstName = name[0]
-            lastName = name[1]
-            
+            firstName = currentLine[0]
+            lastName = currentLine[1]
+            birthday = currentLine[2]
             
             try:
-                print(name[0]+" "+name[1])
+                print(firstName+" "+lastName)
                 print(f'Birthday: {birthday}')
-                birthday = birthday.split('/')
 
-                convertedBirthday = str(birthday[2].replace('\n','')+'-'+birthday[0]+'-'+birthday[1])
-                print(f'Converted Birthday: {convertedBirthday}')
-
-
+                # convertedBirthday = str(birthday.replace('\n',''))
+                # print(f'Converted Birthday: {convertedBirthday}')
 
                 urlName = "https://api.themoviedb.org/3/search/person?query="+firstName+"%20"+lastName+"&include_adult=false&language=en-US&page=1"
-
 
                 headers = {
                     "accept": "application/json",
                     "Authorization": "Bearer eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJmNmVmNWZhMzllM2I3MDFlNGZhYmQyOThjNTE5ZjJhZCIsIm5iZiI6MTczMjcyNTM2MS44NjIwMDAyLCJzdWIiOiI2NzQ3NGE3MTBmZDdmODIzZTBjOWFhYmIiLCJzY29wZXMiOlsiYXBpX3JlYWQiXSwidmVyc2lvbiI6MX0.GqcOH4BR7uWn9JdcurVQV5ZNnWrJW7tJ6EubPIYBHD8"
                 }
-
 
                 response = requests.get(urlName, headers=headers)
 
@@ -82,7 +55,6 @@ def openHockeyPlayerCsv(output_folder: str):
                     #print(id)
 
                     # Checking if the birthday aligns with the player
-
                     urlId = 'https://api.themoviedb.org/3/person/'+id
 
                     response = requests.get(urlId, headers=headers)
@@ -92,7 +64,7 @@ def openHockeyPlayerCsv(output_folder: str):
                     fetch_birthday: str = str(json_object_id['birthday'])
                     #print(fetch_birthday)
 
-                    if(fetch_birthday == convertedBirthday):
+                    if(fetch_birthday == birthday):
                         # Getting the list of credits for the specific person if their is a birthday match
                         print(id)
 
@@ -108,7 +80,7 @@ def openHockeyPlayerCsv(output_folder: str):
                         print("About to write")
 
                         if len(json_object_final) != 0:
-                            with open(f'{output_folder}/movie_data/{firstName}_{lastName}_{convertedBirthday}.json', "w") as outfile:
+                            with open(f'{output_folder}/movie_data/{firstName}_{lastName}_{birthday}.json', "w") as outfile:
                                 try:
                                     json.dump(json_object_final,outfile)
                                     outfile.close()
@@ -121,19 +93,30 @@ def openHockeyPlayerCsv(output_folder: str):
 
                         break
                     else:
-                        print(fetch_birthday + " is not equal to "+convertedBirthday)
+                        print(fetch_birthday + " is not equal to "+birthday)
             except:
                 print("Issue with value of the current player, skipping")
                 
-
             print('Done with line')
 
 
+default_args = {
+    'start_date': airflow.utils.dates.days_ago(0),
+    'concurrency': 1,
+    'schedule_interval': None,
+    'retries': 0,
+    #'retry_delay': datetime.timedelta(minutes=5),
+}
 
+dag = DAG(
+    dag_id='fetching_api_data',
+    default_args=default_args,
+    catchup=False,
+)
 
 task_one = PythonOperator(
     task_id='get_spreadsheet',
-    dag=first_dag,
+    dag=dag,
     python_callable=openHockeyPlayerCsv,
     op_kwargs={
         "output_folder": "/opt/airflow/dags",
@@ -145,7 +128,7 @@ task_one = PythonOperator(
 
 end = DummyOperator(
     task_id='end',
-    dag=first_dag,
+    dag=dag,
     trigger_rule='none_failed'
 )
 
