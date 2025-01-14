@@ -19,9 +19,9 @@ The DAG sql_dag creates and populates the tables based on the data completed in 
 
 After having instantiated the tables, it then populates the players table using the data gathered by scraping the site along with the entertainment data fetched from the api. Having populated the players table, it then populates the remaining tables using the players table along with the api data. 
 
-As the data has already been gathered in previous stages it doesn't check wether it is online or not. 
+As the data has already been gathered in previous stages it doesn't check whether it is online or not. 
 
-All the tables are created and stored in an sql database. Access to the database is through postgres 
+All the tables are created and stored in an sql database using the star schema. Access to the database is through PostgreSQL.
 
 
 ## Setting up
@@ -39,3 +39,4 @@ docker-compose up -d
 docker compose exec airflow-webserver airflow connections add 'postgres_default' --conn-uri 'postgres://airflow:airflow@postgres:5432/airflow'
 ```
 5. Open http://localhost:8080.
+6. Run the DAGS manually, starting with data_ingestion_dag.
