@@ -53,3 +53,15 @@ docker compose exec airflow-webserver airflow connections add 'postgres_default'
 ```
 5. Open http://localhost:8080.
 6. Run the DAGS manually, starting with data_ingestion_dag.
+
+
+## Results
+If it all have run successfully then one should be able to answer the initial questions using the queries and get similar answers to the following: 
+1. How many players has appeared in television?
+![alt text](https://github.com/S203932/Cross_check/blob/3e57b4dbab21f9c6a9a060776dd77018087a8c59/Images/Amount_in_tv.png)
+2. Which year contained the most appearances of NHL players in movies?
+![alt text](https://github.com/S203932/Cross_check/blob/3e57b4dbab21f9c6a9a060776dd77018087a8c59/Images/Years_most_apperances_movies.png)
+3. Which players has made atleast two appearances in both tv shows and movies?
+![alt text](https://github.com/S203932/Cross_check/blob/3e57b4dbab21f9c6a9a060776dd77018087a8c59/Images/Players_movies_tv_2.png)
+
+
