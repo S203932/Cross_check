@@ -15,6 +15,13 @@ The DAG data_staging_dag then process the data from the ingestion. In the first 
 After this, the connection to the API https://developer.themoviedb.org/reference/person-movie-credits is tested. If it works, the processed data is used to enrich the dataset with players appearance in entertaining media from the API. To make sure that the data comes from the player and not a namesake, the players birthday from the csv is checked against the birthday from the api. If the birthdays match, the data is saved in a JSON file. If the connection doesn't work, a downloaded subset will be used.
 
 ## Production
+The DAG sql_dag creates and populates the tables based on the data completed in the staging. It starts by instantiating the necessary tables; Players (which provides essential information about the players in general), Movies (which contains information about all the movies that any players have partaken in), TV (which contains information about what tv shows/programs the players have partaken in) and lastly Credits (which contains information about what players have played which roles in which movies and tv shows). 
+
+After having instantiated the tables, it then populates the players table using the data gathered by scraping the site along with the entertainment data fetched from the api. Having populated the players table, it then populates the remaining tables using the players table along with the api data. 
+
+As the data has already been gathered in previous stages it doesn't check wether it is online or not. 
+
+All the tables are created and stored in an sql database. Access to the database is through postgres 
 
 
 ## Setting up
@@ -27,4 +34,8 @@ TMDB_API_KEY=your_api_key_here
 ```
 docker-compose up -d
 ```
-4. Open http://localhost:8080.
+4. Start postgres
+```
+docker compose exec airflow-webserver airflow connections add 'postgres_default' --conn-uri 'postgres://airflow:airflow@postgres:5432/airflow'
+```
+5. Open http://localhost:8080.
