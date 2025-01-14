@@ -4,7 +4,7 @@ The idea behing this project was to combine a dataset of current and former NHL 
 
 2. Which year contained the most appearances of NHL players in movies?
 
-3. Which players have appeared in both tv shows and movies?
+3. Which players has made atleast two appearances in both tv shows and movies?
 
 
 ## Ingestion
